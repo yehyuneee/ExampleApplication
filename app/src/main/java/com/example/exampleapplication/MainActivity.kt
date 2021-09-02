@@ -78,12 +78,66 @@ class MainActivity : AppCompatActivity() {
 //        Payment.pay.add(Person("",""))
 //        Payment.cacluatePay(Person(""))
         CaseInsensitiveFileComparator.compare(File("/User"), File("/Library"))
+        // 익명클래스에서도 object 사용가능
+        // 상속의 의미가 존재한다!!
+        // 클래스와 다르게 생성자가 존재하지 않는다
+        setClickListener(object : ClickListener {
+            override fun onClick() {
+                TODO("Not yet implemented")
+            }
+        })
 
-        // 14. companion object
+        // 14. companion object (동반객체)
         // 코틀린은 static을 지원하지 않는 대신 top-level function을 통해 같은 효과 낼 수 있다.
         // 이 function은 내부에 정의된 private 프로퍼티에는 접근 할 수 없다. --> 이를 개선 시켜줌!!!
         // 클래스의 내부정보에 접근할 수 있는 함수가 필요할 때 사용
         Companion.bar()
+
+        // ** 나이가 많은 한사람을 뽑는다.
+        getPerson(listOf(Personn("김예현", 29), Personn("김예혀니", 30)))
+        // maxByOrNull로 간단하게 구현 가능 - Collection의 확장 함수
+        val peopleList = listOf(Personn("김예현", 29), Personn("김예혀니", 30))
+        peopleList.maxByOrNull { it.age }
+
+        // 15. 람다식 문법 ( 자바8부터 사용 가능
+        // 1. 중괄호로 감싼다
+        // 2. 인자와 본문은 -> 로 구분한다
+        // 3. 인자는 ()로 감싸지 않는다.
+        // 4. 인자는 형식추론이 가능하므로 타입 생략 가능
+        // 5. 변수에 람다식을 담는 경우에는 인자의 타입 생략 가능
+
+        peopleList.maxByOrNull({ p: Personn -> p.age })
+        peopleList.maxByOrNull() { p: Personn -> p.age }
+        peopleList.maxByOrNull { p: Personn -> p.age }
+        peopleList.maxByOrNull { it.age }
+
+        //함수의 맨 마지막 인자가 람다라면 () 안에서 빼내서 밖에 람다를 표현할 수 있다.
+        //인자가 하나라면 그 인자는 람다식 내부에서 it으로 받을 수 있다.
+        //인자가 하나이면서 그 인자가 람다타입 이라면 ()를 생략할 수 있다.
+
+        // 15-1. 람다의 closure
+        // 자바에서는 람다를 함수 내부에서 접근할 때 final로 선언해준다. - stack영역에 메모리 영역이 잡히고,
+        // 함수가 끝나면 메모리 영역에서 해제되기 때문
+        // Kotlin의 경우 해당 변수값을 복사해서 사용 lamda capturing이라 한다.
+
+        // 15-2. 멤버 참조
+        // 람다를 넘길 때 프로퍼티나 다른함수가 같은 signature를 가지고 있다면 간단하게 ::로 표현 가능
+//        /////// ** 클래스의 멤버 표현 ( 클래스이름::멤버변수 )
+//        peopleList.maxBy { Parent::age }
+//        // ** 최상위 함수 표현 ( ::최상위함수 )
+//        ::getPerson
+//        /////// ** 변수에 람다대신 멤버 참조 저장 ( ::함수 )
+//        val killer = { person: Personn -> Person("예혀니") }
+//        val mulder = ::Person
+//        /////// ** 생성자 ( ::클래스 )
+//        /////// 생성자를 변수에 저장할 수 있고, 생성을 지연시킬 수 있다.
+//        val personInit = ::Personn
+//        val personData = personInit("김예현", 29)
+//        /////// ** 확장함수 ( 클래스::함수 )
+//        fun Personn.isAdult() = this.age > 10
+//        val adultinit = Personn::isAdult
+
+
 
     }
 }
@@ -203,11 +257,12 @@ fun Person(vararg name: String) {}
 object CaseInsensitiveFileComparator : Comparator<File> {
     override fun compare(
         file1: File,
-        file2: File
+        file2: File,
     ): Int {
         return file1.path.compareTo(file2.path, ignoreCase = true)
     }
 }
+
 // Person 객체를 정렬하는 Comparator를 Parent 객체 내부에 구현하고 싶다면 중첩된 class 형태로 구현 가능
 //data class Person1(val name: String){
 //    object comparatorPerson : Comparator<Person>{
@@ -216,13 +271,49 @@ object CaseInsensitiveFileComparator : Comparator<File> {
 //        }
 //    }
 //}
+// 익명 클래스를 구현할 때도 object를 사용한다!!!
+interface ClickListener {
+    fun onClick()
+}
+
+fun setClickListener(clickListener: ClickListener) {
+    clickListener.onClick()
+}
 
 // 14. companion object
 // 클래스 내부에 static 정의와 같다
 class Companion {
-    companion object companiontest{
-        fun bar(){
+    companion object companiontest {
+        fun bar() {
             println("Companion obejct test")
         }
     }
+}
+
+interface JSONFactory<T> {
+    fun fromJson(jsonText: String): T
+}
+
+class Person(val name: String) {
+    companion object : JSONFactory<String> {
+        override fun fromJson(jsonText: String): String {
+            TODO("Not yet implemented")
+        }
+    }
+}
+
+// 13. 람다 문법
+data class Personn(val name: String, val age: Int)
+
+fun getPerson(people: List<Personn>) {
+    var oldPerson: String? = null
+    var maxAge = 0
+    for (init in people) {
+        if (init.age > maxAge) {
+            maxAge = init.age
+            oldPerson = init.name
+        }
+    }
+
+    println("Old Person : " + oldPerson)
 }
