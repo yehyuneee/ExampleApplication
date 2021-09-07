@@ -83,7 +83,7 @@ class MainActivity : AppCompatActivity() {
         // 클래스와 다르게 생성자가 존재하지 않는다
         setClickListener(object : ClickListener {
             override fun onClick() {
-                TODO("Not yet implemented")
+
             }
         })
 
@@ -138,9 +138,80 @@ class MainActivity : AppCompatActivity() {
 //        val adultinit = Personn::isAdult
 
 
+        // 16. Collection API
+        // 1. filter
+        // ( 람다식을 인자로 받아 조건에 따라 filtering 한다 )
+        val list = listOf(2, 3, 4, 5, 6)
+        val resultlist = list.filter { it % 2 == 0 }
+        // 2. map
+        // 원소를 원하는 형태로 변환 , 반환값 list
+        val people = listOf(Personn("김예현", 29), Personn("예현", 30))
+        val resultpeople = people.map { it.age > 29 }
+        val maxAgePeople = people.maxByOrNull { it.age }!!.age
+        val resultMaxAge = people.filter { it.age == maxAgePeople }
+        // filterKey, mapKeys, filterValues, mapValues 제공!
+        val numbers = mapOf(0 to "zero", 1 to "one")
+        println("test16 numbers : " + numbers.mapValues { it.value.toString().toUpperCase() })
+        // 3. all : collection 전체가 주어진 조건을 만족하는지 판단, 반환값 boolean
+        val canBeInClub27 = { p: Personn -> p.age > 29 }
+        val peopleresult2 = people.all(canBeInClub27)
+        // 4. any : collection 원수중에 하나라도 주어진 조건을 만족하는지 판단, 반환값 boolean
+        // 5. count : 주어진 조건을 만족하는 원소의 갯수 반환, 반환값 int
+        // 6. find : 주어진 조건에 만족하는 첫번째 원소 반환, 반환값 t
+        // 7. group by , 반환값 Map<Int, List<T>> --> 나이별로 묶인다.
+        val peoplegroup = listOf(Personn("Alice", 31), Personn("Bob", 29), Personn("Carol", 31))
+        println("test17 group : " + peoplegroup.groupBy { it.age })
+        val alpabetgroup = listOf("a", "ab", "a")
+        println("test17 group2 : " + alpabetgroup.groupBy(String::first))
+        // 반환값 Map<String, List<String>>
+        // 8. flatMap , flatten
+        // flatMap : Map을 처리하고 난 다음의 결과가 list인 경우 이 list의 원소를 다시 펼쳐서 하나의 list로 만듬
+        val strings = listOf("abc", "def")
+        strings.flatMap { it.toList() } // list("abc") , list("def") --> list("a","b","c","d","e","f")
+        // 9. Collection의 lazy execution
+        // asSequence() --> 중간 연산결과 없이 연산을 한다, 최종 결과를 요청하는 시점에 모든 계산이 수행된다.
+        listOf(1, 2, 3, 4).asSequence().map { println("asSequence test : " + "map($it)"); it * it }
+            .filter { it % 2 == 0 }.toList()
+        // 리스트 원소 하나씩 flow를 거친다. --> 원소의 수가 많을 때 메모리면에서 효율적이다
+
+        // 17. 자바 functional interface
+        // 코틀린에서는 이러한 함수 호출 시 람다식 사용 가능하다.
+
+        post(1000, object : Runnable {
+            override fun run() {
+                println("test17 : " + "Functional Interface Test")
+            }
+        })
+        // 호출할 때마다 Runnuable 생성된다 (비효율적)
+        // 람다식으로 생성하면 한번만 객체 생성 후 재사용한다.
+        // 내부적으로 람다식은 익명클래스로 치환된다.
+        val runnuble = Runnable { println("test17 : " + "Functional Interface Test") }
+        post(1000, runnuble)
+
+        // lambda capturing이 발생하면 해당변수를 lambda에서 포함해야한다.
+        // 이럴 경우에는 매번 객체가 생성되어 사용된다.
+        handleComputation("test17")
+
+        // 18. SAM (Single Abstract Method) 생성자 : 람다를 함수형 인터페이스로의 명시적 변형
+        fun createAllDoneRunnable(): Runnable {
+            return Runnable { println("test18 : return Runnuable") }
+        }
+        createAllDoneRunnable().run()
+        // Runnuable 객체 자체를 반환하는 함수
+
+        fun createAllDoneRunnable2(): Runnable {
+            return object : Runnable {
+                override fun run() {
+                    println("test18 : return Runnuable")
+                }
+            }
+        }
+        // SAM 생성자 이용해 Runnable 반환!
+
 
     }
 }
+
 
 // 1. 확장함수 this는 생략 가능하다
 fun String.test1(): Char = this.get(this.length - 1)
@@ -317,3 +388,12 @@ fun getPerson(people: List<Personn>) {
 
     println("Old Person : " + oldPerson)
 }
+
+
+// 17. function interface 호출
+fun handleComputation(msg: String) {
+    post(1000, println(msg))
+}
+
+fun post(time: Int, msg: Unit) {}
+fun post(time: Int, runnuble: Runnable) {}
