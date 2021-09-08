@@ -92,6 +92,10 @@ class MainActivity : AppCompatActivity() {
         // 이 function은 내부에 정의된 private 프로퍼티에는 접근 할 수 없다. --> 이를 개선 시켜줌!!!
         // 클래스의 내부정보에 접근할 수 있는 함수가 필요할 때 사용
         Companion.bar()
+        Companion2.sleepy("두시")
+        // 1. companion object 에 이름 명명
+        // 2. companion object 내부에 확장함수나 property 정의
+        // 3. 인터페이스 상속
 
         // ** 나이가 많은 한사람을 뽑는다.
         getPerson(listOf(Personn("김예현", 29), Personn("김예혀니", 30)))
@@ -207,6 +211,90 @@ class MainActivity : AppCompatActivity() {
             }
         }
         // SAM 생성자 이용해 Runnable 반환!
+        // ** 람다의 listsner 등록, 해제
+        // 람다 내부에서 this를 사용하면 , 해당 this는 람다를 둘러싸고 있는 외부 객체를 가르킵니다.
+        // 이와 다르게 익명클래스 내부에서는 this는 익명클래스 자체를 가리킵니다.
+        // Event listner가 이벤트를 처리하고 나서 자기 자신을 해제해야 하는 경우 람다식이라면 this를 사용할 수 없다.
+        // 이경우 익명클래스를 작성하여 this를 이용해 자기 자신 해제하도록 한다.
+
+        // 19. 수신객체지정 람다 (apply, with)
+        // with
+        // with 파라미터로 넘겨준 객체는 람다내부에서 this로 접근해 사용 가능 , 마지막 return 값이 람다 값이 된다.
+        println("test19 with  : " + alpabetOut())
+        // apply
+        // with과 거의 동일한 기능이지만, 차이점이 있다.
+        // 1. 객체의 확장함수로 동작한다 2. return값은 객체 자신이다 (람다 내부의 마지막 값이 아님)
+        println("test19 apply : " + alpabetOut2())
+
+        // 20. null처리
+        // 1. type 뒤에 ? 붙임으로써 null이 가능한 변수임을 명시한다.
+        // 2. null safe operator : ?.
+        // --> 앞의 변수가 null이 아닐 때만 오른쪽 함수가 실행되고 아니면 null이 반환된다.
+        fun nulloper(s: String?) {
+            val operator: String? = s?.toUpperCase()
+            // s가 null이 아닐때만 대문자 처리 실행된다.
+        }
+        // property 접근시에도 ?. 사용
+        employeemain()
+
+        // 3. Elvis operator (?:)
+        // null인 경우 default값을 지정하고 싶을 때 사용
+        fun DuaLipa(song: String?) {
+            val songname = song ?: "Unknown"
+            println("test20-3 : " + songname)
+        }
+        DuaLipa("Physical")
+
+        //21. safe cast
+        //스마트 캐스트인 is를 이용하면 as를 사용하지 않고도 type변환 가능
+        //as를 바로 사용하여 casting할 때 type이 맞지 않으면 classcastexception발생
+        //--> as? : casting을 시도하고 casting이 불가능하면 null을 반환한
+        Personsmart("김", "예현").firstname
+        //22. 강제 not null처리
+        // !! 연산자 : 강제로 null이 아님을 명시해준다.
+        fun boombayaa(s: String?) {
+            val notNull: String = s!!
+        }
+
+        //22. let 함수
+        //not null인 경우에만 실행되도록 한다.
+        //null인 경우에는 람다식 안의 구문이 실행되지 않는다.
+        var email: String? = "into1023@naver.com"
+        fun sendemail(sendmail: String?) {
+            println("test22 : " + sendmail)
+        }
+        email = null
+        email.let { sendemail(it) }
+        // null로 값이 입력되며 실행된다.
+        email?.let { sendemail(it) }
+        // ?. 연산자 사용하여 let안 구문이 실행되지 않는다.
+        // 중첩이 늘어나면 가독성이 떨어지므로 그럴땐 if구문을 사용하는 것이 효율적임
+
+        //23. property의 초기화 지연
+        //프로퍼티 초기화는 생성자에서 이루어져 생성자에서 초기화하면 끝이다.
+        //lateinit 연산자 : 나중에 초기화 할 수 있다.
+        Myservice().service()
+
+        //24. nullable type의 extension function
+        //널이 가능한 객체에 확장함수를 선언할 수 있습니다.
+        // ** String? type에서는 isNullOrBlank() 또는 isNullOrEmpty()함수 지원한다.
+        fun userInput(user: String?) {
+            if (user.isNullOrEmpty()) {
+                println("test24 : not null")
+            }
+        }
+
+        //25. Generic의 nullable
+        // Generic을 사용하면 무조건 nullable로 인식된다.
+        fun <T> genericfunction(t: T) {
+            println("test25 : " + t?.hashCode())
+        }
+        // T에 ? 가 붙지 않았지만 , 이는 ? 붙은 것과 같다 --> 함수 내부에서 null check 반드시 필요
+        fun <T : Any> genericfunction2(t:T){
+            println("test25 : " + t.hashCode())
+        }
+        // T는 Any의 상한제한을 갖기 때문에, T는 non null type이다
+
 
 
     }
@@ -353,10 +441,19 @@ fun setClickListener(clickListener: ClickListener) {
 
 // 14. companion object
 // 클래스 내부에 static 정의와 같다
+// private 프로퍼티라도 접근 가능하다!!
 class Companion {
     companion object companiontest {
         fun bar() {
             println("Companion obejct test")
+        }
+    }
+}
+
+class Companion2 private constructor() {
+    companion object {
+        fun sleepy(time: String) {
+            println("Companion2 private property")
         }
     }
 }
@@ -397,3 +494,74 @@ fun handleComputation(msg: String) {
 
 fun post(time: Int, msg: Unit) {}
 fun post(time: Int, runnuble: Runnable) {}
+
+// 19. 수신객체지정 람다 (with)
+fun alpabetOut(): String {
+    var resultBuffer = StringBuilder()
+    return with(resultBuffer) {
+        for (alpabet in 'A'..'Z') {
+            this.append(alpabet)
+        }
+        this.toString()
+    }
+}
+
+// apply
+fun alpabetOut2() = StringBuilder().apply {
+    for (alpabet in 'A'..'Z') {
+        this.append(alpabet)
+    }
+}.toString()
+
+///// buidString : StringBuilder를 생성하고, toString()를 자동 호출합니다.
+fun alpabetOut3() = buildString {
+    for (letter in 'A'..'Z') {
+        this.append(letter)
+    }
+}
+
+// 20. null 처리
+// ?. 연산자
+class Employee(val name: String, val employeee: Employee?)
+
+fun employeefun(employee: Employee): String? = employee.employeee?.name
+fun employeemain() {
+    val ceo: Employee = Employee("예혀니", null)
+    val ceoin: Employee = Employee("효니", ceo)
+    println("test20-2 : " + employeefun(ceo))
+    println("test20-2 : " + employeefun(ceoin))
+}
+
+// 21. smart cast
+class Personsmart(val firstname: String, val lastName: String) {
+    override fun equals(other: Any?): Boolean {
+        val otherPerson = other as? Personsmart ?: return false
+        // java version
+//        Personsmart o = null;
+//        if(o instanceof Personsmart){
+//            o = (Personsmart)o;
+//        }else{
+//            return false;
+//        }
+
+        return otherPerson.firstname == firstname &&
+                otherPerson.lastName == lastName
+    }
+}
+
+// 23. property 초기화 지연
+// 초기화 이전에 접근한다면 에러가 발생한다.
+class Myservice {
+    fun service(): String = "myservice"
+}
+
+class MyTest {
+    private lateinit var myservice: Myservice
+
+    fun setup() {
+        myservice = Myservice()
+        myservice.service()
+    }
+
+    val beforeservice: String? = "beforeservice"
+}
