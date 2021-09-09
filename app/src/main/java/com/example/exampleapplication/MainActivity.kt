@@ -7,6 +7,8 @@ import android.util.Log
 import java.io.File
 import java.lang.Exception
 import java.lang.reflect.Array.set
+import java.math.BigDecimal
+import java.util.*
 import kotlin.Comparator
 import java.util.Comparator as Comparator1
 
@@ -289,17 +291,139 @@ class MainActivity : AppCompatActivity() {
         fun <T> genericfunction(t: T) {
             println("test25 : " + t?.hashCode())
         }
+
         // T에 ? 가 붙지 않았지만 , 이는 ? 붙은 것과 같다 --> 함수 내부에서 null check 반드시 필요
-        fun <T : Any> genericfunction2(t:T){
+        fun <T : Any> genericfunction2(t: T) {
             println("test25 : " + t.hashCode())
         }
         // T는 Any의 상한제한을 갖기 때문에, T는 non null type이다
 
 
+        // ** 코틀린의 타입은 컴파일 시 자바의 primitive 또는 wrapper 타입으로 변환됩니다.
+        // ** coerceln() 범위를 한정하는 함수
+        fun progress(cnt: Int) {
+            var percent = cnt.coerceIn(0, 100)
+            // 0 부터 100까지 제한
+        }
 
+        // 27. 널타입 Int?, Boolean?
+        // 널이 가능한 타입은 primitiave type으로 변경이 불가능, 널이 불가능한 타입은 가능
+        data class Personnn(val name: String, val age: Int?) {
+            fun isOlder(other: Personnn): Boolean? {
+                if (age == null || other.age == null) {
+                    return null
+                } else {
+                    return age > other.age
+                }
+            }
+        }
+        println(Personnn("김예현", 29).isOlder(Personnn("예현", 30)))
+        // 28. 숫자변환
+        // 자동으로 숫자 변환시켜주지 않기 때문에 toByte(), toInt()... 등등 존재
+        val numberInt: Int = 10
+        val numberLong: Long = numberInt.toLong()
+        // 29. Any, Any? 최상위 타입
+        // 코틀린에는 Object가 없는 대신 Any, Any? 타입이 존재
+        // Object타입처럼 모든 객체의 상위객체, Boolean/Int의 상위객체
+        // * Any타입에는 null이 존재할 수 없으므로 null이 들어가야되는 곳에는 Any? 로 사용해야함
+        // 자바의 Object와는 다르게 Any는 wait(), notify()는 제공하지 않는다 --> 사용하려면 Object로 캐스팅해야함
+
+        // 30. Unit Type
+        // void와 같은 역할을 한다
+        // 제너릭타입에 명시 가능하며, return을 명시적으로 넣지 않아도 됨
+        class noResultProcessor : test<Unit> {
+            override fun testUnit() {
+                println("Unit Test")
+                // return 필요하지 않음
+            }
+        }
+
+        // 31. Nothing Type
+        // 함수가 정상적으로 끝나지 않는다는 걸 명시적으로 표현
+        // return 타입이나 , 인자로만 쓸 수 있다.
+        // Nothing은 아무것도 저장할 수 없으므로 변수로 사용이 불가능하다
+        fun fail(message: String): Nothing {
+            throw Throwable()
+        }
+
+        fun nothingtest() {
+            fail("nothing")
+        }
+
+        // 32. Collection의 널처리
+        // List<Int> : List와 원소 모두 null이 없다.
+        // List<Int?> : List엔 null이 없고 원소에는 null이 있다.
+        // List<Int>? : List엔 null이 있고, 원소에는 null이 없다.
+        // List<Int?>? : List와 원소 모두 null이 있다.
+
+        // 33. 자바 Collection과의 연결
+        // 코틀린은 읽기 쓰기의 interface를 구분하지만 , 자바는 둘다 허용하기 때문에 자바의 collection은 MutableCollection을 상속받은 것으로 취급
+        // Map 역시 Map과 MutableMap으로 구분된다.
+        // 읽기전용: listOf, setOf, mapOf
+        // 수정가능: mutableListOf, mutableSetOf, mutableMapOf (arrayListOf, hashSetOf, sortedSetOf, linkedSetOf, hashMapOf, linkedMapOf,sortedMapOf)
+        // ** 따라서 읽기전용인 Collection을 자바에 넘기더라도, 이는 자바에서 변경 가능함을 염두해 두어야 한다.
+        // 또한 원소가 null이 아닌 타입으로 지정하였으나, 자바에서 이 collection을 받아 null을 넣을 수 있다는 점도 주의해야 한다
+
+        // 34. 객체의 배열과 원시 타입의 배열
+        // 1. arrayOf(원소1, 원소2..)
+        // 2. arrayOfNulls (개수) : 해당 개수 만큼 null을 넣어 배열 생성
+        // 3. Array(개수, 생성식-lambda) : 해당 개수 만큼 람다를 이용해서 배열 생성
+        fun arrayfunction(args: Array<String>) {
+            for (i in args.indices) { // 배열의 인덱스를 읽음
+                println("test34 Arrays : $i" + args.get(i))
+            }
+        }
+
+        val arrays = listOf("a", "b", "c")
+        arrayfunction(arrays.toTypedArray()) // 컬렉션을 배열로 변환
+        // forEachIndexed() 확장함수 : 각 인덱스와 값을 가져올 수 있다.
+        fun arrayIndex(args: Array<String>) {
+            args.forEachIndexed { index, s ->
+                println("test34 Arrays Index : " + index + ":" + s)
+            }
+        }
+
+        // 35. 이항 산술 연산자 오버로딩
+        // 산술 연산자를 코틀린에서는 overriding해서 사용 가능
+        // operator 키워드로 함수 앞에 붙이고 연산자 사용
+        // + : plus , - : minus , * : times , / : div , % : rem
+        println("test 35 1: " + plusPoint(10, 20))
+        // operator 함수도 오버로딩이 가능하기 때문에 같은 이름에 파라미터 타입이 서로 다른 연산자 함수를 여러개 만들 수 있다.
+        // 비트 연산자는 오버로딩이 불가능, 중위함수 제공
+        // << : shl , >> : shr , >>> : ushr , & : and , | : or , ^ : xor , ~ : inv
+        val initpp = timePoint(10, 20)
+        val pp = initpp * 1.5
+        println("test 35 2: " + pp)
+        println("test 35 3: " + mixPoint(10, 20))
+
+        // 36. 복합연산자
+        // =+ : plusAssign ... minusAssign, timeAssign, divAssign..
+        // plus와 plusAssign을 동시에 구현하면 컴파일 오류 발생
+
+        // 37. 단항연산자
+        // 단항연산자 역시 overriding이 가능하며, 인자가 없다
+        val shortp = mixPoint(30, 30)
+        println("test 37 1: " + -shortp)
+        var bd = BigDecimal.ZERO
+        println("test 37 2: " + bd++)
+        println("test 37 3: " + ++bd)
+
+        // 38. equals
+        // == 는 equal()로 치환된다. != 역시 마찬가지이다.
+        // a == b -> a?.equals(b)?:(b==null) ---> a와 b가 둘다 null이면 true를 반환
+        // equals는 Any안에 operator키워드가 붙어 구현되어 있어 하위 클래스에서는 override 키워드 이용해서 == 와 치환할 수 있다.
+
+        // 39. compareTo
+        // Comparable의 compareTo 함수 호출
+        // a >= b -> a.compareTo(b) >= 0
+        // compareValueBy(객체1, 객체2, 비교조건1, 비교조건2) : 두개의 조건을 우선순위 비교조건에 따라 처리
+        // 1. 두 객체 비교 : equals -> 0 , 2. 비교 조건 1 사용 -> 0이 안나올 때까지 비교 , 3. 만약 비교조건1이 모두 0이라면 비교조건2 사용 -> 0이 안나올 때까지 비교
+        val p1 = comparePerson("Alice", "Smith")
+        val p2 = comparePerson("Jay", "Park")
+        val resultp = p1 < p2
+        println("test 39 : " + resultp)
     }
 }
-
 
 // 1. 확장함수 this는 생략 가능하다
 fun String.test1(): Char = this.get(this.length - 1)
@@ -564,4 +688,49 @@ class MyTest {
     }
 
     val beforeservice: String? = "beforeservice"
+}
+
+//30. Unit Type
+interface test<T> {
+    fun testUnit(): T
+}
+
+//35. 산술 연산자
+data class plusPoint(val num1: Int, val num2: Int)
+
+operator fun plusPoint.plus(other: plusPoint): plusPoint {
+    return (plusPoint(num1 + other.num1, num2 + other.num2))
+}
+
+// 연산자의 타입이 다르고 return값 다르게 설정해도 문제없이 실행된다.
+val initp = timePoint(10, 20)
+val p = initp * 1.5
+// 교환 법칙이 성립하므로 1.5 * initp 일 경우
+// operator fun Double.times(time: timePoint) : timePoint{ ... }  로 선언해야 한다.
+
+data class timePoint(val num1: Int, val num2: Int)
+
+operator fun timePoint.times(time: Double): timePoint {
+    return (timePoint(num1 * time.toInt(), num2 * time.toInt()))
+}
+
+// 36. 복합 연산자
+data class mixPoint(val num1: Int, val num2: Int)
+
+fun mixPoint.plusAssign(mix: mixPoint): mixPoint {
+    return mixPoint(num1 + mix.num1, num2 + mix.num2)
+}
+
+// 37. 단항 연산자
+operator fun mixPoint.unaryMinus(): mixPoint {
+    return mixPoint(-num1, -num2)
+}
+
+operator fun BigDecimal.inc() = this + BigDecimal.ONE
+
+// 39. compareTo
+class comparePerson(val firstname: String, val lastName: String) : Comparable<comparePerson> {
+    override fun compareTo(other: comparePerson): Int {
+        return compareValuesBy(this, other, comparePerson::firstname, comparePerson::lastName)
+    }
 }
