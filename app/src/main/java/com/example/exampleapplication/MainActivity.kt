@@ -8,10 +8,12 @@ import java.io.File
 import java.lang.Exception
 import java.lang.IndexOutOfBoundsException
 import java.lang.reflect.Array.set
+import java.lang.reflect.Type
 import java.math.BigDecimal
 import java.util.*
 import kotlin.Comparator
 import java.util.Comparator as Comparator1
+import kotlin.collections.Map as Map1
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -451,6 +453,30 @@ class MainActivity : AppCompatActivity() {
         // for문에서 in 연산자를 이용해 loop를 실행한다.
         // in은 iterator 함수와 연결된다.
         // in 연산자가 iterator의 next() 와 hasNext() 로 이루어진다.
+
+        // 5. Destructing declaration과 component함수
+//        val mp = mapOf("Oracle" to "Java", "JetBrains" to "Kotlin")
+//        printEntries(mp)
+        val p = Print(10, 20)
+        val (x, y) = p
+        println("test 40-5 : " + x)
+        println("test 40-5 : " + y)
+        // val (x,y) = p
+        // val x = p.component1 , val y = p.component2
+
+        // 6. property의 위임
+        // property의 위임이란 property에 대한 get(), set() 동작을 특정 객체가 처리하도록 위임하는 것을 말한다.
+        // 이를 이용하면 property의 값을 field가 아니라 db table이나 브라우저의 세션, 맵등에 저장 가능
+        // by를 이용해서 위임한다.
+//        class Foo {
+//            var p: type by Delegate()
+//        }
+
+        // 7. by lazy를 이용한 초기화 지연
+        // property 중에 초기화를 미뤄야 하는것들이 존재한다.
+        // 예를 들면 데이터를 네트워크나, DB에서 읽어와 사용하고 한번만 사용하면 읽어와서 사용하는 경우 아래와 같이 코드를 구성할 수 있다
+
+
     }
 }
 
@@ -809,3 +835,34 @@ fun Range() {
 //
 //    override fun next() = current.apply { current = plusDays(1) }
 //}
+
+// 40-5. Destucting declaration 과 component 함수
+//fun printEntries(map: Map) {
+//    for ((key, value) in map) {
+//        println("$key -> $value")
+//    }
+//}
+
+data class Print(val x: Int, val y: Int)
+
+// 40-6. by lazy를 이용한 초기화 지연
+class Email {}
+
+class PersonEmail(val name: String) {
+    var _email: List<String>? = null
+    val email: List<String>?
+        get() {
+            if (_email == null) {
+                _email = loadEmail(this)
+            }
+            return _email
+        }
+}
+
+fun loadEmail(person: PersonEmail): List<String>? {
+    println("test 40-6 : " + "Load Email : ${person.name}")
+    return listOf()
+}
+
+
+
