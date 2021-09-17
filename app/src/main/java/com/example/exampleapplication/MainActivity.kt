@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import java.io.File
 import java.lang.Exception
+import java.lang.IndexOutOfBoundsException
 import java.lang.reflect.Array.set
 import java.math.BigDecimal
 import java.util.*
@@ -422,6 +423,34 @@ class MainActivity : AppCompatActivity() {
         val p2 = comparePerson("Jay", "Park")
         val resultp = p1 < p2
         println("test 39 : " + resultp)
+
+        // 40. Collection과 range의 convention
+        // 1. Index operator
+        // 배열은 array[index] 형태로 접근하며, collection에서는 get/set으로 index에 접근한다.
+        val bye = Bye(10, 20)
+        println("test 40-1 : " + bye[0])
+        var my = My(10, 20)
+        my[0] = 20
+        my[1] = 10
+        println("test 40-2 : " + my.toString())
+
+        // 2. In convention
+        // a in b == a.contains(b)
+        val containTest = Two(One(10, 20), One(50, 50))
+        val one1 = One(20, 30) in containTest
+        val one2 = One(5, 5) in containTest
+        println("test 40-3 : " + one1)
+        println("test 40-3 : " + one2)
+
+        // 3. range to convention
+        // .. 연산자이며 rangeTo 함수로 표현된다.
+        // start .. end == start.rangeTo(end)
+        Range()
+
+        // 4. iterator for loop
+        // for문에서 in 연산자를 이용해 loop를 실행한다.
+        // in은 iterator 함수와 연결된다.
+        // in 연산자가 iterator의 next() 와 hasNext() 로 이루어진다.
     }
 }
 
@@ -734,3 +763,49 @@ class comparePerson(val firstname: String, val lastName: String) : Comparable<co
         return compareValuesBy(this, other, comparePerson::firstname, comparePerson::lastName)
     }
 }
+
+// 40. Collection 과 range의 convetion
+// 40-1. index operator
+data class Bye(val x: Int, val y: Int)
+data class My(var x: Int, var y: Int)
+
+operator fun Bye.get(index: Int) {
+    when (index) {
+        0 -> x
+        1 -> y
+        else ->
+            throw IndexOutOfBoundsException("indexOutException")
+    }
+}
+
+operator fun My.set(index: Int, value: Int) {
+    when (index) {
+        0 -> x = value
+        1 -> y = value
+        else -> throw IndexOutOfBoundsException("indexOutException2")
+    }
+}
+
+// 40-2. in convention
+data class One(val x1: Int, val y1: Int)
+data class Two(val x2: One, val y2: One)
+
+operator fun Two.contains(one: One): Boolean {
+    return one.x1 in x2.x1 until y2.x1 && one.y1 in y2.y1 until y2.y1
+}
+
+// 40-3. range To convention
+fun Range() {
+    val n = 9
+    println("test 40-4 : " + 0..(n + 1).toString())
+    (0..n).forEach { println("test 40-4 : " + it) }
+}
+
+//// 40-4. iterator for loop
+//operator fun ClosedRange.iterator(): Iterator<String> = object : Iterator<String> {
+//    var current = start
+//    override fun hasNext() =
+//        current <= endInclusive
+//
+//    override fun next() = current.apply { current = plusDays(1) }
+//}
