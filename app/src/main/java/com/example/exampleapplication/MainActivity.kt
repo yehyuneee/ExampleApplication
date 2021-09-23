@@ -3,17 +3,12 @@ package com.example.exampleapplication
 import android.app.Person
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
+import android.system.Os
 import java.io.File
 import java.lang.Exception
 import java.lang.IndexOutOfBoundsException
-import java.lang.reflect.Array.set
-import java.lang.reflect.Type
 import java.math.BigDecimal
-import java.util.*
 import kotlin.Comparator
-import java.util.Comparator as Comparator1
-import kotlin.collections.Map as Map1
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -277,6 +272,7 @@ class MainActivity : AppCompatActivity() {
 
         //23. property의 초기화 지연
         //프로퍼티 초기화는 생성자에서 이루어져 생성자에서 초기화하면 끝이다.
+        //프로퍼티 초기화는 생성자에서 이루어져 생성자에서 초기화하면 끝이다.
         //lateinit 연산자 : 나중에 초기화 할 수 있다.
         Myservice().service()
 
@@ -475,10 +471,82 @@ class MainActivity : AppCompatActivity() {
         // 7. by lazy를 이용한 초기화 지연
         // property 중에 초기화를 미뤄야 하는것들이 존재한다.
         // 예를 들면 데이터를 네트워크나, DB에서 읽어와 사용하고 한번만 사용하면 읽어와서 사용하는 경우 아래와 같이 코드를 구성할 수 있다
+        val pe = PersonEmail("Alice")
+        println("test 40-7 : " + pe.emails)
+        println("test 40-7 : " + pe.emails)
+        // by lazy를 이용하면!!!!!!!!
+        // 1. 한번만 초기화 한다
+        // 2. 초기화 시 람다 구문이 사용된다
+        // 3. Thread-safe 하다
+        // 4. lock이 따로 필요하다면 넘길 수 있다
+        // 5. Thread-safe할 필요가 없다면 없게 할 수 있다.
 
+        // 8. Delegation property with observing pattern
+        // Property가 변경될 때 UI에 변경을 알리거나, 다른 곳에 알림을 주기 위해 PropertyChangeSupport와 PropertyChangeEvent 클래스를
+        // 사용하는 경우가 많다.
+        // 기본적으로는 event 발생 시 subscriber에게 notify 해주는 observer pattern 이다.
+
+
+        // 41. 고차함수
+        // * 매개변수로 함수를 전달 받거나 함수를 반환하는 함수를 말한다.
+        // 고차함수란 함수의 인자나 반환값이 lambda인 경우를 말한다.
+        // 예를 들면 list의 filter나 map은 인자로 람다를 받는다. 이 둘은 고차함수이다.
+        // 함수타입은 생략할 수 있으나, 명시하려면 (인자1:타입, 인자2:타입) 반환타입으로 표기할 수 있다.
+//        val returnNull = (Int, String) -> String? = { null }
+        val lambdaNull: ((Int, String) -> String)? = null
+        // 함수 타입에 인자를 넣더라도 컴파일시 무시된다. 하지만 인자가 있음으로 가독성을 높일 수 있다.( 타입의 인자와 사용된 인자의 이름 달라도 상관없음)
+        // 41-1. 인자로 받은 함수 호출
+        yayayaya(10, { x -> x * x })
+        // 41-2. 자바에서 코틀린 고차 함수 호출
+        // 자바에서 코틀린의 함수를 호출할 때 인자를 함수 타입으로 넣어야한다면, 이를 대신할 인터페이스를 구현하는 객체 넣어야한다.
+        // interface의 이름은 FuctionN<N1,N2...N,R>이며 invoke 함수하나만을 추상으로 갖는다
+        // Function0<R> : 인자가 없을때
+        // Function1<T,R>: 인자가 하나일때
+        // Function2<T,V,R>: 인자가 두개일때
+        // FunctionN<N1,N2...,R> 인자가 N개일때
+
+        // 42. lambda인수에 default값 지정
+        // 함수타입 인자로 기본값 지정할 수 있다.
+
+        // 43. 함수를 반환
+        // 인자외에 return값에 함수 타입을 반환하도록 할 수도 있다.
+        val caculate = getShippingCoast(Delivery.EXPEDITED)
+        println("test43 : ${caculate(Order(3))}")
+        // 44. 람다를 이용한 중복제거
+        println("test44 : " + averageWindowDuration)
+        // top level function 수정
+        println("test44 : " + log.averageWindowTopLevel(OS.WINDOWS))
+        println("test44 : " + log.averageWindowTopLevel(OS.MAC))
+
+        // 45. inline function
+        // 참고 : https://thdev.tech/kotlin/2020/09/29/kotlin_effective_04/
+        // ****** 코드 라인 자체가 안으로 들어간다는 뜻, 함수의 내용을 통해 호출하는 것이 아닌 , 호출하는 코드 자체가 함수 내용의 코드가 되는 효과있음
+        // 람다를 사용하면 컴파일러가 내부적으로 익명 class로 치환하여 객체를 생성, 이는 java 1.6과 호환하기 위함이며,
+        // 성능저하를 위해서 한번만 생성하여 재사용하는 방법등을 이용하여 성능에 신경쓴다.
+        // 하지만 적어도 한번은 객체를 생성해야한다는 부담이있어 이럴 경우 inline function 사용한다.
+        // inline function 은 컴파일 시 해당함수의 코드가 호출된 부분으로 그대로 들어가 바이트 코드로 변경된다.
+        // 45-1. lnline function limitation
+        // inline으로 사용하려는 함수가 함수타입 인자를 바로 실행하지 않고, 어딘가에 저장해 놓았다가 사용한다면 나중에 그 변수를 사용할 경우에는
+        // inline 함수로 만들 수 없다.
+        // ex ) list 를 opration할 때 sequence로 만들 경우  filter, map 함수
+        // 여러 인자를 받을 때 람다만 inline하고 싶지 않다면 , noinline키워드를 붙이면 된다.
+
+        val password: String = "your password"
+        val password2 = Password("your password")
+
+        // 46. 람다 내부의 return
+        // 람다 내부에서 return을 사용하면 람다뿐만 아니라 외부의 function까지도 종료된다. ===> non-local return (자신의 외부함수까지 종료)
+        // 람다 내부에 return쓸 수 있는건 inline 함수 뿐이다.
+
+        // 47. label을 이용한 local return
+        // 람다내부에 label을 사용한다면 람다내부에서만 빠져나올 수 있다.
+        fun labelling(living: String) {
+            living.forEach label@{ return@label }
+        }
 
     }
 }
+
 
 // 1. 확장함수 this는 생략 가능하다
 fun String.test1(): Char = this.get(this.length - 1)
@@ -845,18 +913,22 @@ fun Range() {
 
 data class Print(val x: Int, val y: Int)
 
-// 40-6. by lazy를 이용한 초기화 지연
+// 40-7. by lazy를 이용한 초기화 지연
 class Email {}
 
 class PersonEmail(val name: String) {
-    var _email: List<String>? = null
-    val email: List<String>?
-        get() {
-            if (_email == null) {
-                _email = loadEmail(this)
-            }
-            return _email
-        }
+//    var _email: List<String>? = null
+//    val email: List<String>?
+//        get() {
+//            if (_email == null) {
+//                _email = loadEmail(this)
+//            }
+//            return _email
+//        }
+
+
+    // by lazy()로 한줄로 바꿀 수 있다.
+    val emails by lazy { loadEmail(this) }
 }
 
 fun loadEmail(person: PersonEmail): List<String>? {
@@ -864,5 +936,50 @@ fun loadEmail(person: PersonEmail): List<String>? {
     return listOf()
 }
 
+// 40-1. 고차함수
+// 자바에서 사용법 참고
+fun yayayaya(x1: Int, argFun: (Int) -> Int) {
+    val result = argFun(10)
+}
 
+// 42. lambda인수에 default값 지정
+//fun Collection<List<String>>.joinToString(
+//    separator: String = "",
+//    prefix: String = "",
+//    postfix: String = "",
+//)
 
+// 43. 함수 반환
+enum class Delivery { STANDARD, EXPEDITED }
+class Order(val itemCount: Int)
+
+fun getShippingCoast(delivery: Delivery): (Order) -> Double {
+    if (delivery == Delivery.EXPEDITED) {
+        return { order -> 6 + 2.1 * order.itemCount }
+    }
+
+    return { order -> 1.2 * order.itemCount }
+}
+
+data class SiteVisit(
+    val path: String,
+    val duration: Double,
+    val os: OS,
+)
+
+enum class OS { WINDOWS, LINUX, MAC, IOS, ANDROID }
+
+val log = listOf(SiteVisit("/", 34.0, OS.WINDOWS),
+    SiteVisit("/", 22.0, OS.MAC),
+    SiteVisit("/login", 12.0, OS.WINDOWS),
+    SiteVisit("/signup", 8.0, OS.IOS),
+    SiteVisit("/", 16.3, OS.ANDROID))
+
+val averageWindowDuration = log.filter { it.os == OS.WINDOWS }.map(SiteVisit::duration).average()
+
+// top-level function으로 수정
+fun List<SiteVisit>.averageWindowTopLevel(os: OS) =
+    log.filter { os == it.os }.map(SiteVisit::duration).average()
+
+// 45. inline class, function
+inline class Password(val value: String)
