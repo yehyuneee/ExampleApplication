@@ -1,12 +1,17 @@
 package com.example.exampleapplication
 
+import android.app.Activity
 import android.app.Person
+import android.content.Context
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.system.Os
 import java.io.File
 import java.lang.Exception
+import java.lang.IllegalArgumentException
 import java.lang.IndexOutOfBoundsException
+import java.lang.reflect.Type
 import java.math.BigDecimal
 import kotlin.Comparator
 
@@ -544,6 +549,76 @@ class MainActivity : AppCompatActivity() {
             living.forEach label@{ return@label }
         }
 
+        // 48. Generic 함수
+        // 코틀린은 반드시 타입을 정의하고 사용하여야한다.
+        // 48-1. Generic함수와 프로퍼티
+        // fun <T> List <T>.slice(indices: IntRange): List<T>
+        // 호출할때 type 인자를 명시적으로 넣어도 되지만 넣지 않더라도 컴파일러가 알아서 타입을 추론합니다.
+        val letters = ('A'..'Z').toList()
+        println("test 48 : " + letters.slice(0..2))
+        // 48-2. Generic Class
+        // 자바에서는 super나 extends 사용해 사용한 타입을 제한할 수 있다.
+        // 코틀린에서는 : 를 이용해 상한 type을 설정할 수 있다.
+        // 자바 : < T extends Number > T sum(List<T> list)
+        // 코틀린 : fun <T:Number> List<T>.sum() : T
+        fun <T : Comparable<T>> max(first: T, second: T): T {
+            return if (first > second) first else second
+        }
+        // 위 예제에서 T는 Comparable을 상한 타입으로 가지고 있다.
+        // 즉 max함수는 Comparable을 구현하고 있어야한다. ---> String은 Comparable을 구현하므로 가능하다.
+        println("test 48-2 : " + max("Kotlin", "KO"))
+
+        // 48-3. Non-Null Type 파라미터 설정
+        // 코틀린에서 타입의 기본은 Non null 이다. 다만 Generic인 경우에만 기본값이 Nullable이다.
+        // class Friend<T> {
+        //    fun getUnique(value: T) {
+        //        value?.hashCode()
+        //    }
+        //}
+        // val friend = Friend<Type>()
+        // friend.getUnique(null) // 가능
+
+        // 49. Generic의 런타임
+        // 자바에서는 실행시점에 instance의 타입인자를 확인할 수 없다. 이는 JVM이 type erase하기 때문이다.
+        // 다만 코틀린에서는 inline을 통해 이를 피할 수 있다.
+        // 49-1. Generic의 run time
+        // 클래스가 생성되어 instance가 되면 더이상 인자정보를 가지고 있지 않다.
+        // 예를 들어 List<String> 을 객체로 만들었다면, 이는 List 타입만 알 뿐 내부에 저장된 원소의 type은 알 수 없다.
+        // 이미 컴파일러가 type에 맞는 원소만 담고있을거라는 가정하여 run time에서는 이미 맞는 type만 들어있다고 생각한다.
+        // if(value is List<String>) ---> List<String> 일때만 문제없고, List<Int> 라면 컴파일 실패한다.
+        // 원소의 타입과 상관없이 List인지 아닌지 구분하려면 '*' 연산자 사용.
+        fun printSum(c: Collection<*>) {
+            val intList = c as? List // 여기서 warning 발생
+                ?: throw IllegalArgumentException("List is Exception")
+        }
+        // 인자가 두개이상이라면 * 를 두개이상 표현
+        // 49-2. reified로 타입 실체화
+        // 인라인 함수를 이용하면 type 정보를 남길 수 있다.
+        println("test 49-2 : " + isA<String>("abc"))
+        println("test 49-2 : " + isA<Int>(123))
+        // filterIsInstance<String>() 함수 사용하면 특정 타입의 인자만 분리해냄
+        // 내부적으로 for문을 돌면서 if(element is T)를 체크한다.
+        val listlist = listOf("a", 1, "b")
+        println("test 49-2 : " + listlist.filterIsInstance<Int>())
+
+        // 49-3. 실체화한 타입으로 클래스 참조
+        // class를 인자로 넣어야 하는 경우
+        // MainActivity.class ---> 코틀린 : MainActivity::class.java
+        // reified로 표현하면
+        println("test 49-3 : " + startActivity<MainActivity>())
+        // *** Reified 사용가능/불가능
+        // ** 사용가능 case
+        // 1. type 검사와 캐스팅 (is, !is, as, as?)
+        // 2. 추후 언급되는 코틀린 리플렉션API(::class)
+        // 3. 코틀린타입에 대응하는 java.lang.Class 얻기 (::class.java)
+        // 4. 다른 함수를 호출할 대 타입 인자로 사용
+        // ** 사용 불가 case
+        // 1. Type 파라미터 클래스의 인스턴스 생성
+        // 2. Type 파라미터의 companion object method 호출
+        // 3. reified 되지 않는 type을 받아 reified type을 받는 함수에 넘기기
+        // 4. 클래스, property, inline 함수가 아닌 함수의 타입 파라미터를 reified로 지정하기
+
+
     }
 }
 
@@ -983,3 +1058,12 @@ fun List<SiteVisit>.averageWindowTopLevel(os: OS) =
 
 // 45. inline class, function
 inline class Password(val value: String)
+
+// 49-2. inline Generic reified
+inline fun <reified T> isA(value: Any) = value is T // 컴파일 가능
+
+// 49-3. 실체화한 타입으로 클래스 참조
+inline fun <reified T : Activity> Context.startActivity() {
+    val intent = Intent(this, T::class.java)
+    startActivity(intent)
+}
