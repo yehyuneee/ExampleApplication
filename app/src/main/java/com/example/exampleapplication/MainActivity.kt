@@ -618,10 +618,45 @@ class MainActivity : AppCompatActivity() {
         // 3. reified 되지 않는 type을 받아 reified type을 받는 함수에 넘기기
         // 4. 클래스, property, inline 함수가 아닌 함수의 타입 파라미터를 reified로 지정하기
 
+        // 50. Constructor와 init
+        // 코틀린에서는 class를 초기화할 때 두가지 방법을 사용한다.
+        // constructor 이용하거나 , init 사용하여 객체가 생성될 때 필요한 초기화 작업 가능
+        // 1. property initalizers
+        val count: Int = 0
 
+        // 2. initalize block
+        // class에 init 블럭을 넣으면 객체 생성 시 호출되어 실행된다.
+        // init 블럭은 보통 class내 상단부분에 넣지만, 중간에 넣어도 되며, 여러개를 넣어도 전부 생성 시 호출된다.
+        class initalizing {
+            init {
+
+            }
+        }
+
+        // 3. constructor
+        // 생성자 역시 class의 객체 생성 시 호출된다.
+        // class정의와 함께 붙는 primary constructor가 있으며, 파라미터에 따라 달라지는 secondary constructor를 여러개 만들 수 있다.
+        //class Loving(val name: String) {
+        //    constructor (age: Int) {
+        //        age = 0;
+        //    }
+
+        //    constructor(age: Int, address: String, name: String) {
+        //        age = 0;
+        //        address = "노원구"
+        //        name = "김예현"
+        //    }
+        //}
+        // ***** 생성 순서
+        // 1. 호출한 생성자의 arguments에 대해 수행
+        // 2. 만약 해당 생성자에서 다른 생성자를 호출하고 있다면, 호출된 생성자의 arguments가 초기화됨.
+        // 3. 상단에서부터 차례대로 property와 init 블록들이 초기화
+        // 4. 생성자 블럭 내부의 코드들이 수행됩니다.
+        Child(1)
+        // 상속관계가 있다면, 부모 클래스의 모든 property , init block, constructor가 생성된 후에 자식클래스가 초기화 진행된다.
+        // constructor의 블럭 내부가 제일 마지막에 호출된다.
     }
 }
-
 
 // 1. 확장함수 this는 생략 가능하다
 fun String.test1(): Char = this.get(this.length - 1)
@@ -1066,4 +1101,46 @@ inline fun <reified T> isA(value: Any) = value is T // 컴파일 가능
 inline fun <reified T : Activity> Context.startActivity() {
     val intent = Intent(this, T::class.java)
     startActivity(intent)
+}
+
+// 50-3. constructor 호출 순서
+open class Parents {
+    private val a =
+        println("Parent.a - #4")
+
+    constructor (arg: Unit = println("Parent primary constructor default argument - #3")) {
+        println("Parent primary constructor - #7")
+    }
+
+    init {
+        println("Parent.init - #5")
+    }
+
+    private val b = println("Parent.b - #6")
+}
+class Child : Parents {
+    val a =
+        println("Child.a - #8")
+
+    init {
+        println("Child.init 1 - #9")
+    }
+
+    constructor (arg: Unit = println("Child primary constructor default argument - #2")) : super() {
+        println("Child primary constructor - #12")
+    }
+
+    val b =
+        println("Child.b - #10")
+
+    constructor (
+        arg: Int,
+        arg2: Unit = println("Child secondary constructor default argument - #1"),
+    ) : this() {
+        println("Child secondary constructor - #13")
+    }
+
+    init {
+        println("Child.init 2 - #11")
+    }
 }
