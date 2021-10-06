@@ -1,6 +1,7 @@
 package com.example.exampleapplication
 
 import kotlinx.coroutines.*
+import kotlin.coroutines.CoroutineContext
 import kotlin.system.measureTimeMillis
 
 /**
@@ -12,6 +13,7 @@ import kotlin.system.measureTimeMillis
  * lifetime은 전체 application의 process의 의존하므로, application이 끝나면 같이 종료되므로, sleep 걸고 기다려야 lauch 내부의 동작 실행할 수 있음
  *
  * 기초 설명 참고 : https://medium.com/@limgyumin/%EC%BD%94%ED%8B%80%EB%A6%B0-%EC%BD%94%EB%A3%A8%ED%8B%B4%EC%9D%98-%EA%B8%B0%EC%B4%88-cac60d4d621b
+ * 사용할  Dispatcher을 결정하고 -> Dispatcher을 이용하여 CoroutineScope를 만들고 -> CoroutineScope의 launch 또는 async에 수행할 코드 블럭을 넘긴다.
  */
 fun couroutinMain() {
     GlobalScope.launch {
@@ -227,8 +229,168 @@ fun couroutinMain() {
 //    }
 
 
+    // [10]. Context, Dispatchers
+    // 코루틴의 context는 여러요소의 set으로 구성되며, main요소는 Job과 Dispatcher이다.
+    // 코루틴 context는 어떤 쓰레드에서 해당 코루틴을 실행할지에 대한 dispatcher 정보를 담고있다.
+    // 이 dispatcher에 따라서 실행될 특정 thread를 지정하거나, thread pool을 지정하거나, 지정없이 사용할 수 있다.
+    // lanch와 async같은 코루틴 빌더는 코루틴Context값을 옵션으로 지정할 수 있고, 이를 통해 dispatcher를 지정할 수 있다.
+    fun test13() = runBlocking<Unit> {
+        launch {
+            println("main runBlocking : l'm working in thread ${Thread.currentThread().name}")
+            // Main : UI를 구성하는 스레드를 메인으로 사용하는 플랫폼에서 사용된다.
+        }
+        launch(Dispatchers.Unconfined) {
+            println("Unconfined : l'm working in thread ${Thread.currentThread().name}")
+            // Unconfined : 특정 스레드, 특정 스레드 풀을 지정하지 않는다. 일반적으로 사용하지 않으며 특정 목적을 위해서만 사용됨
+        }
+        launch(Dispatchers.Default) {
+            println("Default : l'm working in thread ${Thread.currentThread().name}")
+            // Default : CPU사용량이 많은 작업에 사용된다. 주 스레드에서 작업하기에는 너무 긴 작업들에 적합하다.
+            // GlobalScope.launch와 같은 역할을 한다.
+        }
+        launch(newSingleThreadContext("MyOwnThread")) {
+            // will get its own new thread
+            println("newSingleThreadContext: I'm working in thread ${Thread.currentThread().name}")
+            // 코루틴을 실행시킬 새로운 thread를 생성한다. --> 비싼 리소스를 사용하게 된다.
+        }
+
+        // [11]. Unconfined , confined Dispatcher
+        // Dispatcher를 Unconfined로 설정하면, 해당 코루틴은 caller thread에서 시작된다.
+        // 이 코루틴이 suspend되었다가 상태가 재시작되면 적절한 thread에 재할당되어 시작된다.
+        // 따라서 Unconfined는 CPU time을 소비하지 않는 작업이나, 공유되는 데이터에 접근하지 않아야 하는 작업들에서 이용하는게 적절하다.
+        // 즉 UI처럼 main thread에서만 수행되어야하는 작업들은 unconfined로 지정하면 안된다.
+        // dispatcher의 기본값은 외부 CoroutineScope의 값을 상속받는다.
+        // 특히 runBlocking의 기본 dispatcher은 이를 시작한 thread이다.
+        // CoroutineScope에서 다른 코루틴을 launch시키면 해당 코루틴은 CoroutineScope.coroutineContext를 상속받고, 이때 같이 새로 생성되는
+        // Job 역시 부모 코루틴 job의 자식이 됩니다.
+        // 부모 코루틴이 취소되면 자식들 역시 재귀적으로 전부 취소된다.
+
+        // 부모 코루틴은 자식 코루틴이 끝날때까지 항상 대기한다.
+
+        // [12]. 코루틴 Naming
+        // 코루틴에도 이름을 줄 수 있다.
+        fun test14() = runBlocking(CoroutineName("yhCoroutine")) {
+            println("Started main coroutine")
+            val job = async(CoroutineName("yhAsync")) {
+                println("Started async coroutine")
+            }
+        }
+        // 출력값 -- > [main@yhCoroutine#1] Started main coroutine
+        //       -- > [main@yhAsync#2] Started async coroutine
+
+        // [13]. Combining context elements
+        // context는 여러요소를 가질 수 있다. 복합적인 요소갖기 위해서는 + 연산자 이용한다.
+        fun test15() = runBlocking {
+            launch(Dispatchers.Default + CoroutineName("yhCoroutine")) {
+                println("l'm working in thread ${Thread.currentThread().name}")
+            }
+        }
+
+        // [14]. Job 생성
+        // object에 종속적으로 동작해야하는 경우 Job을 직접 생성해서 사용할 수 있다.
+        Activity()
+
+        // [15]. Thread - local Data
+        // 코루틴의 경우 특정 코루틴 내에서만 사용되는 local data를 지정할 수 있다.
+        // 이 값은 context에 추가적인 요소로 들어가면서 코루틴의 context가 동일하다면 get()하여 값을 얻어갈 수 있고,
+        // context가 switch되면 해당 context값으로 재설정 된다.
+        // context에 값을 저장하기 위해서는 확장함수인 'ThreadLocal'과 'asContentElement' 가 있다.
+        val threadLocal = ThreadLocal<String?>()
+        fun test16() = runBlocking {
+            threadLocal.set("main")
+            println("Thread Local1 : ${threadLocal.get()}")
+            val test1 = launch(Dispatchers.Default + threadLocal.asContextElement("launch")) {
+                println("Thread Local2 : ${threadLocal.get()}")
+                // 코루틴의 context가 변경되므로 asContextElement를 이용해 값 변경 가능!!
+            }
+        }
+
+        val threadLocal2 = ThreadLocal<String?>()
+        threadLocal2.set("main2")
+        println("Thread Local2 : ${threadLocal2.get()}")
+        threadLocal2.set("main3")
+        // 같은 context에서는 값이 불가능하다!!!!! --> main2로 출력됨
+        // 수정하고자 한다면 withContext 사용
+        withContext(threadLocal2.asContextElement("main4")) {
+            println("Thread Local3 : ${threadLocal2.get()}")
+        }
+
+        // [16]. Exception
+        // 참고 : https://jaejong.tistory.com/66
+        // Exception을 외부로 전파시킴 : launch, actor
+        // Exception을 노출 시킴 : async, produce
+        // launch의 경우 exception이 발생하면 바로 예외가 발생한다.
+        // async의 경우 코드가 수행되어 exception이 있더라도 실제로 exception이 발생하는 부분은 await()를 만났을 때 입니다.
+        // 코루틴은 취소를 제외한 다른 exception이 발생하면 부모의 코루틴까지 모두 취소시킨다.
+        // 자식 코루틴에서 exception이 발생되면 다른 자식 코루틴이 모두 취소된 이후에 부모에 의해서 exception이 handling 됩니다.
+        // 자식 coroutine에서 여러개의 exception이 발생할 경우 가장 먼저 발생한 exception이 handler로 전달됩니다.
+
+
+        // [17]. SupervisorJob
+        // 양방향 전파 : 아래 방향(부모 -> 자식) + 위 방향 (자식 -> 부모) 모두 전파
+        // 부모 예외로 인한 취소 발생 시 모든 자식 종료
+        // 자식 예외로 인한 취소 발생 시 부모 / 모든 자식 종료
+        // 단방향 전파일 경우 SupervisorJob 사용
+        // 단방향 전파 : 아래 방향(부모 -> 자식)만 전파되는 것
+        // 부모 예외로 인한 취소 발생 시 모든 자식 종료
+        // 자식 예외로 인한 취소 발생 시 해당 Job만 종료
+        // **** 코루틴 빌더에 인자로 넘겨줘서 사용
+//        fun test17() = runBlocking<Unit> {
+//            val supervisor = SupervisorJob()
+//            with(CoroutineScope(coroutineContext + supervisor)) {
+//                val firstChild = launch(CoroutineExceptionHandler { coroutineContext, throwable ->  }) {
+//                    println("First child is failing")
+//                    throw AssertionError("First child is cancelled")
+//                }
+//                // launch the second child
+//                val secondChild = launch {
+//                    firstChild.join()
+//                    // Cancellation of the first child is not propagated to the second child
+//                    println("First child is cancelled: ${firstChild.isCancelled}, but second one is still active")
+//                    try {
+//                        delay(Long.MAX_VALUE)
+//                    } finally {
+//                        // But cancellation of the supervisor is propagated
+//                        println("Second child is cancelled because supervisor is cancelled")
+//                    }
+//                }
+//                // wait until the first child fails & completes
+//                firstChild.join()
+//                println("Cancelling supervisor")
+//                supervisor.cancel()
+//                secondChild.join()
+//            }
+//            // 결과를 보면 firstChild에서 예외를 발생시켰는데, secondChild는 영향없이 잘 작동하는걸 볼 수 있다.
+//        }
+    }
 }
 
+// CoroutineScope를 상속받았기 때문에 activity내에서는 코루틴 함수들을 잘 사용할 수 있다.
+// override한 coroutineContext의 job을 coroutine context로 사용하도록 한다.
+// activity 내부에서 시작되는 모든 coroutine들은 같은 context를 사용하고, activity 종료 시 전부 취소될 수 있다.
+class Activity : CoroutineScope {
+    lateinit var job: Job
+
+    fun create() {
+        job = Job()
+    }
+
+    fun destroy() {
+        job.cancel()
+    }
+
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Default + job
+
+    fun doSomething() {
+        repeat(10) { i ->
+            launch {
+                delay((i + 1) * 200L)
+                println("Coroutine is done")
+            }
+        }
+    }
+}
 //suspend fun concurrentSum(): Int = coroutineScope {
 //    val one = async { doSomethingOneGlobal() }
 //    val two = async { doSomethingTwoGlobal() }
