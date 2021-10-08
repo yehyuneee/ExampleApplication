@@ -1,6 +1,9 @@
 package com.example.exampleapplication
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.CoroutineContext
 import kotlin.system.measureTimeMillis
 
@@ -14,7 +17,11 @@ import kotlin.system.measureTimeMillis
  *
  * 기초 설명 참고 : https://medium.com/@limgyumin/%EC%BD%94%ED%8B%80%EB%A6%B0-%EC%BD%94%EB%A3%A8%ED%8B%B4%EC%9D%98-%EA%B8%B0%EC%B4%88-cac60d4d621b
  * 사용할  Dispatcher을 결정하고 -> Dispatcher을 이용하여 CoroutineScope를 만들고 -> CoroutineScope의 launch 또는 async에 수행할 코드 블럭을 넘긴다.
- */
+ *
+ * ###### https://heegs.tistory.com/56 매우 도움됨 !!!!!!!!!!!!!!!!!
+ *
+ *
+ * */
 fun couroutinMain() {
     GlobalScope.launch {
         delay(1000L)
@@ -316,7 +323,7 @@ fun couroutinMain() {
         }
 
         // [16]. Exception
-        // 참고 : https://jaejong.tistory.com/66
+        // 참고 : https://jaejong.tistory.com/66 , https://tourspace.tistory.com/155?category=797357
         // Exception을 외부로 전파시킴 : launch, actor
         // Exception을 노출 시킴 : async, produce
         // launch의 경우 exception이 발생하면 바로 예외가 발생한다.
@@ -362,7 +369,105 @@ fun couroutinMain() {
 //            }
 //            // 결과를 보면 firstChild에서 예외를 발생시켰는데, secondChild는 영향없이 잘 작동하는걸 볼 수 있다.
 //        }
+
+        // [18]. Channel
+        // Deffered는 하나의 값을 반환하지만, Channel은 stream을 반환한다.
+        // Channel은 BlockingQueue와 유사하게 동작한다.
+        // ** BloickingQueue의 put -> Channel의 send
+        // ** BlockingQueue의 take -> Channel의 receive
+        // --> 동시성이 필요한 여러 코루틴에서 순서를 보장받으며 공유하며 사용할 수 있다.
+        fun test18() = runBlocking {
+            val channels = Channel<Int>()
+            launch {
+                for (i in 1..5)
+                    channels.send(i * i)
+            }
+            repeat(5) {
+                println("chnnal receive : " + channels.receive())
+            }
+        }
+
+        // queue와 다르게 channel을 끝났음을 close를 통해 명시할 수 있다.
+        // close는 특별한 token의 형태로 이 값 역시 channel에 들어간다. 따라서 iterator들은 이값을 만나면 iteration을 멈춘다.
+        // 이런 형태이기 때문에 close를 호출하더라도 그 이전에 넣어놓은 값을 가져올 수 있다.
+        fun test19() = runBlocking {
+            val channel = Channel<Int>()
+            launch {
+                for (i in 1..5)
+                    channel.send(i * i)
+                channel.close()
+            }
+            for (y in channel)
+                println("test")
+        }
+        // ### Channel개념은 좀 어려움,,,
+        // https://tourspace.tistory.com/156?category=797357
+        // https://medium.com/hongbeomi-dev/%EC%BD%94%ED%8B%80%EB%A6%B0%EC%9D%98-%EC%BD%94%EB%A3%A8%ED%8B%B4-6-channels-3c9ab42df14f
+
+        // 코루틴은 Dispatcher.Default같은 dispatcher를 이용해서 multi-thread 동작이 가능하다.
+        // 따라서 공유된 변경가능한 상태에 접근하는 경우 multi-thread가 접근하는 경우 문제가 생긴다.
+
+        // [19]. 동기화
+        // class의 멤버변수는 thread가 공유해서 접근할 수 있는데, 속도향상을 위해 main memory가 아닌 cashe메모리에서 읽어간다.
+        // 이러한 경우 각각 변경된 값이 실제 원하는 값과 달라 질 수 있다
+        // 이를 보완하기 위해 'volatile' 사용한다.
+        // volatile 키워드의 경우 접근가능한 변수의 값을 cache를 통해 사용하지 않고 thread가 직접 main memory에 접근하여 읽고 쓴다.
+        // 하지만 volatile로도 완벽한 동기화를 할수 없으며, 아래와 같은 문제점도 동시에 안고 있다.
+
+        // Cache를 이용하지 않고 main memory에 직접 access 하기 때문에 더 비싼 cost를 지불해야 한다.
+        // volatile 변수는 읽기 쓰기가 JVM에 의해 reordering 되지 않는다.
+        // volatile 읽기/쓰기 이후의 연산들은 반드시 읽기/쓰기 이후에 이루어 진다
+        // 따라서 필요에 따라 성능상의 이유로 JVM의 instruction reorder 동작을 못하도록 막기 때문에 성능면에서 손해를 본다.
+        // volatile 변수는 read시 항상 최신값을 반환한다. 단 여러 쓰레드가 동시 읽기, 쓰기를 하면 쓰기 시점을 알수없기 때문에 여전히 동기화 문제가 일어난다.
+
+        // 동기화 방법
+        // 참고 : https://velog.io/@dvmflstm/Kotlin-Coroutine%EC%97%90%EC%84%9C%EC%9D%98-%EB%8F%99%EA%B8%B0%ED%99%94-%EC%A0%9C%EC%96%B4
+        // 1. Single Thread
+        // 스레드 하나만 사용, 데이터 결함없이 결과를 도출해낼 수 있지만, 멀티스레드에 비해 속도가 느리다.
+        val counterContext = newSingleThreadContext("contexttest")
+        var counter = 0
+        fun test20() = runBlocking {
+            GlobalScope.massiveRun {
+                withContext(counterContext) {
+                    counter++
+                }
+            }
+        }
+
+        // 2. Mutual Exclusion (Mutex)
+        // mutual exclusion은 공유자원이 일어나는 순간에 적절한 block을 통해 race condition의 발생을 막는 동기화 제어 기법이다.
+//        val mutex = Mutex()
+//        fun test21() = runBlocking {
+//            GlobalScope.massiveRun {
+//                mutex.withLock {
+//                    counter++
+//                }
+//            }
+//        }
+
+        // 3. Actor
+        // 동기화 이슈가 있는 자원을 actor에서 관리하도록하며, actor클래스의 멤버변수로 정의되어있는 channel을 통해 자원으로부터의 접근이 가능
+
+
+
     }
+}
+
+suspend fun CoroutineScope.massiveRun(action: suspend () -> Unit) {
+    val n = 100
+    val k = 1000
+    val time = measureTimeMillis {
+        val jobs = List(n) {
+            launch {
+                repeat(k) {
+                    action()
+                }
+            }
+        }
+
+        jobs.forEach { it.join() }
+    }
+    println("Completed ${n * k} actions in $time ms")
 }
 
 // CoroutineScope를 상속받았기 때문에 activity내에서는 코루틴 함수들을 잘 사용할 수 있다.
