@@ -655,6 +655,9 @@ class MainActivity : AppCompatActivity() {
         Child(1)
         // 상속관계가 있다면, 부모 클래스의 모든 property , init block, constructor가 생성된 후에 자식클래스가 초기화 진행된다.
         // constructor의 블럭 내부가 제일 마지막에 호출된다.
+
+        // 코루틴
+        couroutinMain()
     }
 }
 

@@ -23,6 +23,23 @@ import kotlin.system.measureTimeMillis
  *
  * */
 fun couroutinMain() {
+    runBlocking {
+        val yh1 = launch {
+            delay(1000L)
+            println("비교1")
+        }
+        println("비교2")
+        yh1.join()
+    }
+
+    runBlocking {
+        launch {
+            delay(1000L)
+            println("비교3")
+        }
+    }
+    println("비교4")
+
     GlobalScope.launch {
         delay(1000L)
         println("World~")
@@ -447,7 +464,6 @@ fun couroutinMain() {
 
         // 3. Actor
         // 동기화 이슈가 있는 자원을 actor에서 관리하도록하며, actor클래스의 멤버변수로 정의되어있는 channel을 통해 자원으로부터의 접근이 가능
-
 
 
     }
